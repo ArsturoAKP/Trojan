@@ -42,8 +42,55 @@ Two bookstore examples are (1) importing 100,000 products with
 (2) repeatedly calling `total()` on a shopping cart holding 200,000 items.
 
 ## Part B -- Scenario classification
-For each of the six scenarios: smoke / regression / slow (may be more than one)
-with a 2-3 sentence justification.
+
+### Scenario 1 
+
+Classification: smoke, and potentially slow.
+
+Password-reset email delivery checks an essential account feature.
+An end-to-end test using a real mail service may also be slow,
+but the one-minute deadline alone does not establish its runtime.
+
+### Scenario 2 
+
+Classification: regression.
+
+The shipping-cost calculation previously contained a bug that was
+fixed. This test checks that later changes have not reintroduced it.
+
+### Scenario 3 
+
+Classification: slow.
+
+Generating a sales report from ten years of orders processes a large
+historical dataset. The test should verify the report's correctness,
+not merely that processing finishes.
+
+### Scenario 4 
+
+Classification: smoke.
+
+Checking whether the payment page loads after deployment quickly
+verifies an essential customer feature. It provides basic deployment
+feedback without exhaustively testing payment processing.
+
+### Scenario 5 
+
+Classification: regression.
+
+A customer previously reported duplicate refund credits. The test
+reproduces that situation and checks that issuing the refund twice
+does not credit the customer twice.
+
+### Scenario 6 
+
+Classification: slow.
+
+Testing recommendations with one million titles exercises a large
+dataset and substantial processing work. It would also be regression
+if it reproduced a specific previously fixed defect, but the scenario
+does not state such a history.
+
 
 ## Part F -- Team reflection
 1. Why is running only regression tests before every commit inefficient?
