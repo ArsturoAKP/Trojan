@@ -91,6 +91,91 @@ dataset and substantial processing work. It would also be regression
 if it reproduced a specific previously fixed defect, but the scenario
 does not state such a history.
 
+## Part C -- Smoke and slow tests
+
+All tests are in `tests/test_bookstore.py`. Every result below was produced
+against the **original, unfixed application**, as the brief requires.
+
+### Smoke tests (7)
+
+| # | Test | What it checks | Broken variant it detects | Result | Time |
+|---|---|---|---|---|---|
+| 1 | `test_smoke_register_new_user` | `register()` returns True and stores the user | Registration always fails | PASSED | < 0.005 s |
+| 2 | `test_smoke_login_correct_and_wrong_password` | `login()` accepts the right password and rejects a wrong one | Login accepts any password | PASSED | < 0.005 s |
+| 3 | `test_smoke_add_product_is_saved` | `add_product()` stores the product and `search()` finds it | Products are not saved | PASSED | < 0.005 s |
+| 4 | `test_smoke_add_to_cart` | `add()` puts the item into `cart.items` | Items never reach the cart | PASSED | < 0.005 s |
+| 5 | `test_smoke_checkout_non_empty_cart` | `checkout()` returns the order and records it in `history()` | Checkout produces no result | PASSED | < 0.005 s |
+| 6 | `test_smoke_remove_from_cart` | `remove()` takes an item out of the cart | (extra coverage) | PASSED | < 0.005 s |
+| 7 | `test_smoke_duplicate_and_unknown_are_rejected` | a taken username and an unknown product are rejected | (extra coverage) | PASSED | < 0.005 s |
+
+Command: `pytest -m smoke -v --durations=0`
+
+```text
+tests/test_bookstore.py::test_smoke_register_new_user PASSED                               [ 14%]
+tests/test_bookstore.py::test_smoke_login_correct_and_wrong_password PASSED                [ 28%]
+tests/test_bookstore.py::test_smoke_add_product_is_saved PASSED                            [ 42%]
+tests/test_bookstore.py::test_smoke_add_to_cart PASSED                                     [ 57%]
+tests/test_bookstore.py::test_smoke_checkout_non_empty_cart PASSED                         [ 71%]
+tests/test_bookstore.py::test_smoke_remove_from_cart PASSED                                [ 85%]
+tests/test_bookstore.py::test_smoke_duplicate_and_unknown_are_rejected PASSED              [100%]
+
+(21 durations < 0.005s hidden.  Use -vv to show these durations.)
+================================ 7 passed, 5 deselected in 0.07s ================================
+```
+
+**Smoke suite total: 0.07 s.** Every individual smoke test took less than
+0.005 s, so pytest hid their durations.
+
+**Detection check.** We broke each core feature by hand in the same way as
+the five grading variants (for example replacing `self.items.append(product_id)`
+with `pass`, or making `login()` return `True`) and ran `pytest -m smoke`.
+In every case at least one smoke test failed. The code was restored with
+`git checkout bookstore_app/` afterwards.
+
+### Slow tests (5)
+
+| # | Test | Workload | Why it is slow | Time |
+|---|---|---|---|---|
+| 1 | `test_slow_repeated_search_large_catalog` | 1,500 searches over 20,000 titles | `search()` scans every title: 30,000,000 comparisons | 2.35 s |
+| 2 | `test_slow_bulk_import_and_search` | 100,000 products imported, then 200 searches | `import_products()` loops over every product; 200 searches x 100,000 titles = 20,000,000 comparisons | 2.12 s |
+| 3 | `test_slow_many_cart_operations` | 600,000 add/remove operations, 600 checkouts | very many operations; `remove()` scans the item list | 2.06 s |
+| 4 | `test_slow_many_users_register_and_login` | 300,000 registrations, 600,000 logins | very many repeated operations | 1.50 s |
+| 5 | `test_slow_many_checkouts_build_history` | 1,000,000 checkouts of 3-item orders | builds a 1,000,000-order history | 0.89 s |
+
+Command: `pytest -m slow -v --durations=0`
+
+```text
+tests/test_bookstore.py::test_slow_bulk_import_and_search PASSED                           [ 20%]
+tests/test_bookstore.py::test_slow_many_cart_operations PASSED                             [ 40%]
+tests/test_bookstore.py::test_slow_many_users_register_and_login PASSED                    [ 60%]
+tests/test_bookstore.py::test_slow_repeated_search_large_catalog PASSED                    [ 80%]
+tests/test_bookstore.py::test_slow_many_checkouts_build_history PASSED                     [100%]
+
+======================================= slowest durations =======================================
+2.35s call     tests/test_bookstore.py::test_slow_repeated_search_large_catalog
+2.12s call     tests/test_bookstore.py::test_slow_bulk_import_and_search
+2.06s call     tests/test_bookstore.py::test_slow_many_cart_operations
+1.50s call     tests/test_bookstore.py::test_slow_many_users_register_and_login
+0.89s call     tests/test_bookstore.py::test_slow_many_checkouts_build_history
+
+(10 durations < 0.005s hidden.  Use -vv to show these durations.)
+================================ 5 passed, 7 deselected in 9.01s ================================
+```
+
+### Smoke vs slow comparison
+
+| Suite | Tests | Total time | Slowest single test |
+|---|---|---|---|
+| Smoke (`pytest -m smoke`) | 7 | 0.07 s | < 0.005 s |
+| Slow (`pytest -m slow`) | 5 | 9.01 s | 2.35 s |
+
+The whole smoke suite finishes in 0.07 s, while each slow test on its own
+takes between 0.89 s and 2.35 s, roughly 13 to 34 times longer than the
+entire smoke suite. The slow tests are therefore measurably slower, as the
+brief requires. Times were measured on our Windows laptop (Python 3.14.3);
+they are different on other machines and on GitHub Actions (Linux), where
+`import_products()` is slower because each `time.sleep(0)` call costs more.
+
 
 ## Part F -- Team reflection
 1. Why is running only regression tests before every commit inefficient?
