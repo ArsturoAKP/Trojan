@@ -81,6 +81,20 @@ def test_smoke_duplicate_and_unknown_are_rejected():
     assert cart.items == []
 
 # ---- OUR REGRESSION TESTS (the bug hunt) ----
+@pytest.mark.regression
+def test_cart_total_includes_last_item():
+    """Author: <Name>. Regression: Cart.total().
+    Wrong: with items priced 10, 15 and 25 in the cart, total() returns 25
+    (the last item is skipped; one item gives 0).
+    Correct: total() returns the sum of every item in the cart, 50."""
+    cat = Catalog()
+    cat.add_product("A", "Alpha", 10)
+    cat.add_product("B", "Beta", 15)
+    cat.add_product("C", "Gamma", 25)
+    cart = Cart(cat)
+    for pid in ("A", "B", "C"):
+        cart.add(pid)
+    assert cart.total() == 50
 
 # ---- OUR SLOW TESTS (at least 2) ----
 @pytest.mark.slow
