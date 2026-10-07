@@ -116,6 +116,16 @@ def test_checkout_empty_cart_returns_none():
     assert cart.checkout() is None
     assert cart.history() == []
 
+@pytest.mark.regression
+def test_search_is_case_insensitive():
+    """Author: <Name>. Regression: Catalog.search().
+    Wrong: search("python") returns [] for the title "Python Testing".
+    Correct: a keyword search finds the title regardless of letter case, [1]."""
+    cat = Catalog()
+    cat.add_product(1, "Python Testing", 30)
+    assert cat.search("python") == [1]
+    assert cat.search("TESTING") == [1]
+
 # ---- OUR SLOW TESTS (at least 2) ----
 @pytest.mark.slow
 def test_slow_bulk_import_and_search():
