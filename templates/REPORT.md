@@ -323,7 +323,7 @@ unknown-marker warnings.
 
 | Run | Trigger | Commit | Result | Link |
 |---|---|---|---|---|
-| tests #22 -- `smoke` | push | `790d3a3` | ✅ `<7 passed, 11 deselected in X.XXs>` | [smoke run](<paste run #22 smoke job URL>) |
+| tests #22 -- `smoke` | push | `790d3a3` | ✅ `<7 passed, 11 deselected in X.XXs>` | [smoke run](https://github.com/ArsturoAKP/Trojan/actions/runs/37611175551/job/112758511331) |
 | tests #24 -- `full` | workflow_dispatch | `790d3a3` | ✅ `18 passed in 12.60s` | [full run](https://github.com/ArsturoAKP/Trojan/actions/runs/37606438194/job/112742955475) |
 
 Full job, slowest tests on the GitHub Actions runner (Linux, Python 3.12.14):
@@ -415,3 +415,41 @@ we can write:
 
 This gives the fixer enough information to reproduce the problem and create a fix. The regression test can then be used to confirm that the bug has been fixed.
 
+---
+
+## Bonus -- one test with two markers
+
+Test: `test_large_order_processing` in `tests/test_bookstore.py`,
+marked `@pytest.mark.regression` **and** `@pytest.mark.slow`.
+
+**Why it is a regression test.** It guards two specific known bugs:
+`import_products()` reporting one more product than it imported, and
+`total()` skipping the last item in the cart. Against the shipped code it fails;
+after our fixes it passes, so if either bug ever returns this test turns red.
+
+Shipped code (`git checkout cf5ca64 -- bookstore_app/`, then `pytest -m "regression and slow" -v`):
+```text
+tests/test_bookstore.py::test_large_order_processing FAILED                    [100%]
+E       AssertionError: assert 100001 == 100000
+FAILED tests/test_bookstore.py::test_large_order_processing - AssertionError: assert 100001 == 100000
+========================= 1 failed, 18 deselected in X.XXs =========================
+```
+
+Fixed code (`pytest -m "regression and slow" -v --durations=0`):
+```text
+tests/test_bookstore.py::test_large_order_processing PASSED                    [100%]
+1.43s call     tests/test_bookstore.py::test_large_order_processing
+================================ 1 passed, 18 deselected in 1.50s ================================
+```
+
+**Why it is slow.** It imports 100,000 products, adds all 100,000 to the cart,
+totals the full order 200 times (20,000,000 price look-ups) and checks out the
+whole order. It takes about <X.XX> s on our laptop and about 7 s on Linux, compared
+with 0.07 s for the entire smoke suite.
+
+**Where it belongs in CI/CD.** In the nightly `full` job, not the per-push smoke
+job: it is too slow to make every developer wait on every push, but because it
+guards known bugs it must still run regularly and before every release. Its two
+markers let the pipeline select it precisely: `pytest -m smoke` skips it,
+`pytest -m "regression and not slow"` gives a fast regression check without it,
+and the nightly `pytest tests/` includes it.
