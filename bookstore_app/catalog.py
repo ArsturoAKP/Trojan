@@ -12,6 +12,6 @@ class Catalog:
         """Return a list of product_ids whose title contains the keyword."""
         results = []
         for pid, info in self.products.items():
-            if keyword in info["title"]:
+            if keyword.lower() in info["title"].lower():
                 results.append(pid)
         return results
