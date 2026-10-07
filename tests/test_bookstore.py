@@ -226,3 +226,27 @@ def test_slow_many_checkouts_build_history():
         assert cart.checkout() == ["A", "B", "C"]
     assert len(cart.history()) == 1_000_000
     assert cart.items == []
+
+# ---- BONUS: regression AND slow ----
+
+@pytest.mark.regression
+@pytest.mark.slow
+def test_large_order_processing():
+    """Author: <Name>. Regression + slow: Cart.import_products() and Cart.total()
+    on a 100,000-product order.
+    Wrong: import_products() reports 100,001 imported, and total() of the full
+    order leaves out the last item's price.
+    Correct: import reports 100,000 and total() equals the sum of every price."""
+    # Slow because it imports 100,000 products, adds every one to the cart,
+    # totals the 100,000-item order 200 times (20,000,000 price look-ups) and
+    # checks out the whole order.
+    cat = Catalog()
+    cart = Cart(cat)
+    products = [(i, f"Title {i}", i % 20 + 1) for i in range(100_000)]
+    assert cart.import_products(products) == 100_000
+    for pid, _, _ in products:
+        cart.add(pid)
+    expected = sum(price for _, _, price in products)
+    for _ in range(200):
+        assert cart.total() == expected
+    assert cart.checkout() == [pid for pid, _, _ in products]
