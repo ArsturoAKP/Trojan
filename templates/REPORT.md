@@ -304,6 +304,47 @@ test was broken by the fixes.
 
 ---
 
+## Part E -- Continuous integration
+
+Workflow file: `.github/workflows/tests.yml`
+
+| Trigger | Job | Command | Purpose |
+|---|---|---|---|
+| every `push` | `smoke` | `pytest -m smoke -v` | fast feedback on every change |
+| nightly `schedule` (`cron: "0 2 * * *"`, 02:00 UTC) | `full` | `pytest tests/ -v --durations=10` | full suite including regression and slow tests |
+| manual `workflow_dispatch` | `full` | same as nightly | run the nightly job on demand |
+
+The full job runs `tests/` only, so the supplied `ai_review/` set (which
+contains a deliberately failing test) does not affect CI. All tests carry a
+registered marker from `pytest.ini`, and `pytest --strict-markers` reports no
+unknown-marker warnings.
+
+### Evidence
+
+| Run | Trigger | Commit | Result | Link |
+|---|---|---|---|---|
+| tests #22 -- `smoke` | push | `790d3a3` | ✅ `<7 passed, 11 deselected in X.XXs>` | [smoke run](<paste run #22 smoke job URL>) |
+| tests #24 -- `full` | workflow_dispatch | `790d3a3` | ✅ `18 passed in 12.60s` | [full run](https://github.com/ArsturoAKP/Trojan/actions/runs/37606438194/job/112742955475) |
+
+Full job, slowest tests on the GitHub Actions runner (Linux, Python 3.12.14):
+
+```text
+8.22s call     tests/test_bookstore.py::test_slow_bulk_import_and_search
+2.14s call     tests/test_bookstore.py::test_slow_repeated_search_large_catalog
+1.28s call     tests/test_bookstore.py::test_slow_many_cart_operations
+0.59s call     tests/test_bookstore.py::test_slow_many_checkouts_build_history
+0.34s call     tests/test_bookstore.py::test_slow_many_users_register_and_login
+
+(5 durations < 0.005s hidden.  Use -vv to show these durations.)
+============================= 18 passed in 12.60s ==============================
+```
+
+The smoke tests are among the hidden durations (< 0.005 s each), while every
+slow test takes between 0.34 s and 8.22 s, so the slow tests are measurably
+slower in CI as well.
+
+---
+
 ## Part F -- Team reflection
 1. Why is running only regression tests before every commit inefficient?
 2. Why do smoke tests usually run first in a CI/CD pipeline?

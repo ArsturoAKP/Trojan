@@ -2,7 +2,7 @@
 
 Group: Trojan   Members: Thin Thiri Zaw, Paing Oo Thant, L Peter San Awng, Kaung Myat Tun, Aung Kyaw Phyo
 
-## D3.1 Declaration (required)
+## D3.1 Declaration 
 
 | AI tool | How we used it |
 |---|---|
@@ -60,7 +60,18 @@ E       AssertionError: assert 20 <= 10
 
 ### Evidence -- fixed code (`evidence_ai_fixed.txt`)
 ```text
-<paste your real output here>
+ai_review/test_ai_generated.py::test_cart_total_sums_items PASSED        [ 12%]
+ai_review/test_ai_generated.py::test_login_rejects_wrong_password PASSED [ 25%]
+ai_review/test_ai_generated.py::test_search_finds_exact_title PASSED     [ 37%]
+ai_review/test_ai_generated.py::test_import_returns_count PASSED         [ 50%]
+ai_review/test_ai_generated.py::test_register_duplicate_returns_false PASSED [ 62%]
+ai_review/test_ai_generated.py::test_checkout_empty_returns_none PASSED  [ 75%]
+ai_review/test_ai_generated.py::test_add_to_cart_returns_true_for_known_product PASSED [ 87%]
+ai_review/test_ai_generated.py::test_search_is_limited_to_ten_results FAILED [100%]
+
+>       assert len(cat.search("match")) <= 10
+E       AssertionError: assert 20 <= 10
+========================= 1 failed, 7 passed in 0.07s =========================
 ```
 
 ### Why each verdict
