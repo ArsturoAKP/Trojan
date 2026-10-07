@@ -40,7 +40,7 @@ feedback.
 Two bookstore examples are (1) importing 100,000 products with
 `import_products()` and then searching the catalogue with `search()`;
 (2) repeatedly calling `total()` on a shopping cart holding 200,000 items.
-
+---
 ## Part B -- Scenario classification
 
 ### Scenario 1 
@@ -90,7 +90,7 @@ Testing recommendations with one million titles exercises a large
 dataset and substantial processing work. It would also be regression
 if it reproduced a specific previously fixed defect, but the scenario
 does not state such a history.
-
+---
 ## Part C -- Smoke and slow tests
 
 All tests are in `tests/test_bookstore.py`. Every result below was produced
@@ -175,7 +175,127 @@ entire smoke suite. The slow tests are therefore measurably slower, as the
 brief requires. Times were measured on our Windows laptop (Python 3.14.3);
 they are different on other machines and on GitHub Actions (Linux), where
 `import_products()` is slower because each `time.sleep(0)` call costs more.
+---
+## Part D -- Bug hunt
 
+We found and fixed the planted defects with a **test-first** process:
+1. write a regression test that asserts the correct behaviour,
+2. run it and confirm it **fails** on the shipped code,
+3. commit the failing test,
+4. fix the code, confirm the test **passes** and the full suite stays green,
+5. commit the fix separately.
+
+Detailed write-ups (suspected / tried / observed / expected / fixed) are in
+[FINDINGS.md](FINDINGS.md).
+
+### Summary
+
+| # | Function | Defect | Regression test | Failure on shipped code | Test commit | Fix commit |
+|---|---|---|---|---|---|---|
+| 1 | `Cart.total()` | last item in the cart is never added | `test_cart_total_includes_last_item` | `assert 25 == 50` | `252f0af` | `1eeb31e` |
+| 2 | `Cart.import_products()` | returns one more than the number imported | `test_import_products_returns_number_imported` | `assert 3 == 2` | `75dbbfe` | `96ab32b` |
+| 3 | `Cart.checkout()` | empty cart returns `[]` and records an empty order, instead of `None` | `test_checkout_empty_cart_returns_none` | `assert [] is None` | `18160b3` | `59a64ac` |
+| 4 | `Catalog.search()` | search is case-sensitive: `"python"` does not find `"Python Testing"` | `test_search_is_case_insensitive` | `assert [] == [1]` | `6133602` | `974199c` |
+| 5 | `Users.login()` | symbols are stripped from the typed password, so the correct password `"p@ss!word"` is rejected | `test_login_accepts_password_with_symbols` | `assert False is True` | `3af793b` | `b269e1c` |
+| 6 | `Users.login()` | the same stripping lets a wrong password (`"secret1!"`) log in as `"secret1"` | `test_login_rejects_password_with_extra_symbols` | `assert True is False` | `3af793b` | `b269e1c` |
+
+In every row the test commit comes **before** the fix commit in our git history.
+
+### Bug 1 -- `Cart.total()` skips the last item
+
+Shell investigation (shipped code):
+```text
+>>> cart.add("A"); cart.add("B"); cart.add("C")   # prices 10, 15, 25
+>>> cart.total()
+25
+```
+Cause: `for i in range(len(self.items) - 1)` stops one item early.
+Fix: loop over every item -- `for pid in self.items:`.
+
+### Bug 2 -- `Cart.import_products()` count is off by one
+
+```text
+>>> cart.import_products([("A", "Alpha", 5), ("B", "Beta", 6)])
+3
+>>> len(cat.products)
+2
+```
+Cause: `return count + 1`. The products are saved correctly; only the count is wrong.
+Fix: `return count`.
+
+### Bug 3 -- `Cart.checkout()` on an empty cart
+
+```text
+>>> cart = Cart(Catalog())
+>>> cart.checkout()
+[]
+>>> cart.history()
+[[]]
+```
+Cause: no empty-cart check, although the docstring promises `None`.
+Fix: `if not self.items: return None` at the top, before anything is recorded.
+
+### Bug 4 -- `Catalog.search()` is case-sensitive
+
+```text
+>>> cat.add_product(1, "Python Testing", 30)
+>>> cat.search("Python")
+[1]
+>>> cat.search("python")
+[]
+>>> cat.search("TESTING")
+[]
+```
+Cause: `keyword in info["title"]` compares letters exactly. A customer typing
+in lower case finds nothing, which a bookstore search should not do.
+Fix: `keyword.lower() in info["title"].lower()`.
+
+### Bugs 5 & 6 -- `Users.login()` strips symbols from the password
+
+```text
+>>> u.register("carol", "p@ss!word")
+True
+>>> u.login("carol", "p@ss!word")
+False
+>>> u.register("dave", "secret1")
+True
+>>> u.login("dave", "secret1!")
+True
+>>> u.login("dave", "se-cret1")
+True
+```
+Cause: `cleaned = "".join(ch for ch in password if ch.isalnum())` removes all
+symbols from the typed password, but `register()` stores it unchanged. This
+both rejects correct passwords that contain symbols and accepts wrong ones
+that differ only by symbols (a security problem).
+Fix: compare the exact password -- `return stored is not None and stored == password`.
+
+### Verification
+
+Before any fix (all six regression tests fail on the shipped code):
+```text
+FAILED tests/test_bookstore.py::test_cart_total_includes_last_item - assert 25 == 50
+FAILED tests/test_bookstore.py::test_import_products_returns_number_imported - AssertionError: assert 3 == 2
+FAILED tests/test_bookstore.py::test_checkout_empty_cart_returns_none - assert [] is None
+FAILED tests/test_bookstore.py::test_search_is_case_insensitive - assert [] == [1]
+FAILED tests/test_bookstore.py::test_login_accepts_password_with_symbols - AssertionError: assert False is True
+FAILED tests/test_bookstore.py::test_login_rejects_password_with_extra_symbols - AssertionError: assert True is False
+```
+
+After all fixes (`pytest -m regression -v`):
+```text
+tests/test_bookstore.py::test_cart_total_includes_last_item PASSED               [ 16%]
+tests/test_bookstore.py::test_import_products_returns_number_imported PASSED     [ 33%]
+tests/test_bookstore.py::test_checkout_empty_cart_returns_none PASSED            [ 50%]
+tests/test_bookstore.py::test_search_is_case_insensitive PASSED                  [ 66%]
+tests/test_bookstore.py::test_login_accepts_password_with_symbols PASSED         [ 83%]
+tests/test_bookstore.py::test_login_rejects_password_with_extra_symbols PASSED   [100%]
+========================== 6 passed, 12 deselected in 0.04s ===========================
+```
+
+The full suite (`pytest`) also passes on the fixed code, so no smoke or slow
+test was broken by the fixes.
+---
 
 ## Part F -- Team reflection
 1. Why is running only regression tests before every commit inefficient?
