@@ -106,6 +106,16 @@ def test_import_products_returns_number_imported():
     assert cart.import_products([("A", "Alpha", 5), ("B", "Beta", 6)]) == 2
     assert len(cat.products) == 2
 
+@pytest.mark.regression
+def test_checkout_empty_cart_returns_none():
+    """Author: <Name>. Regression: Cart.checkout().
+    Wrong: checking out an empty cart returns [] and records an empty order,
+    so history() becomes [[]].
+    Correct: per the docstring it returns None, and no order is recorded."""
+    cart = Cart(Catalog())
+    assert cart.checkout() is None
+    assert cart.history() == []
+
 # ---- OUR SLOW TESTS (at least 2) ----
 @pytest.mark.slow
 def test_slow_bulk_import_and_search():
