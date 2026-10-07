@@ -126,6 +126,28 @@ def test_search_is_case_insensitive():
     assert cat.search("python") == [1]
     assert cat.search("TESTING") == [1]
 
+@pytest.mark.regression
+def test_login_accepts_password_with_symbols():
+    """Author: <Name>. Regression: Users.login().
+    Wrong: a user registered with "p@ss!word" cannot log in with that exact
+    password -- login() returns False (symbols are stripped before comparing).
+    Correct: the exact registered password logs in, True."""
+    users = Users()
+    users.register("carol", "p@ss!word")
+    assert users.login("carol", "p@ss!word") is True
+
+
+@pytest.mark.regression
+def test_login_rejects_password_with_extra_symbols():
+    """Author: <Name>. Regression: Users.login().
+    Wrong: a user registered with "secret1" can log in with "secret1!" or
+    "se-cret1" -- login() returns True for a wrong password.
+    Correct: only the exact password is accepted; these return False."""
+    users = Users()
+    users.register("dave", "secret1")
+    assert users.login("dave", "secret1!") is False
+    assert users.login("dave", "se-cret1") is False
+
 # ---- OUR SLOW TESTS (at least 2) ----
 @pytest.mark.slow
 def test_slow_bulk_import_and_search():
