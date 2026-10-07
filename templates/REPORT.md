@@ -345,10 +345,73 @@ slower in CI as well.
 
 ---
 
-## Part F -- Team reflection
-1. Why is running only regression tests before every commit inefficient?
-2. Why do smoke tests usually run first in a CI/CD pipeline?
-3. What risks arise if slow tests are never run?
-4. Can one test belong to two categories? Give an example.
-5. Bug-finders and bug-fixers are often different people in a real QA team.
-   What does that separation change about how a bug report must be written?
+## Part F — Team Reflection
+
+### 1. Why is running only regression tests before every commit inefficient?
+
+Regression tests check whether old bugs have come back. They do not always check whether the main features still work.
+
+For example, our regression tests could all pass even if `register()` or `add()` stopped working because those functions are not tested by the regression tests. Smoke tests would find these problems quickly.
+
+Also, the regression test suite can become larger over time and may contain slow tests. Running all regression tests before every commit can take more time than necessary. A quick smoke test gives faster feedback.
+
+### 2. Why do smoke tests usually run first in a CI/CD pipeline?
+
+Smoke tests are usually quick and check whether the main features of the application work.
+
+They answer a simple question: **"Is the application working at a basic level?"**
+
+If an important feature such as login or checkout is broken, there is no need to run slower tests. The pipeline can stop early and tell the developer about the problem.
+
+In our project, the seven smoke tests take only about 0.07 seconds locally, so they can run on every push. The full test suite takes about 12.60 seconds on GitHub Actions and runs every night.
+
+### 3. What risks arise if slow tests are never run?
+
+Some problems only appear when the application works with a large amount of data or many operations.
+
+If we never run slow tests, we may not notice:
+
+* Performance problems
+* Timeouts
+* Problems with large amounts of data
+* Bugs that only happen at a large scale
+
+For example, our `search()` function checks every title each time. Our slow test searches 1,500 times through 20,000 titles and takes about 2.14 seconds in CI.
+
+The `import_products()` function also takes time for each product. Importing 100,000 products takes about 8 seconds on Linux.
+
+With millions of products, these problems could make the application very slow. Slow tests help us find these problems before customers experience them.
+
+### 4. Can one test belong to two categories? Give an example.
+
+Yes. A test can belong to more than one category.
+
+For example, our `test_large_order_processing` test is marked as both **regression** and **slow**.
+
+It is a regression test because it checks previously found bugs. It is also a slow test because it processes a large order containing 100,000 products.
+
+Therefore, this test is better suited for the nightly full test run rather than the quick smoke tests that run on every push.
+
+### 5. Finder and fixer are often different people. What does that change about how a bug report has to be written?
+
+The person fixing the bug may not be the person who found it. Therefore, the bug report should contain enough information for another person to understand and reproduce the problem.
+
+A good bug report should include:
+
+* The function or feature with the problem
+* The exact input used
+* What actually happened
+* What should have happened
+* The reason why the expected result is correct
+* A failing test, if possible
+
+For example, instead of saying:
+
+> "Login is broken."
+
+we can write:
+
+> `login("dave", "secret1!")` returns `True` when the correct password is `"secret1"`. The expected result is `False`.
+
+This gives the fixer enough information to reproduce the problem and create a fix. The regression test can then be used to confirm that the bug has been fixed.
+
