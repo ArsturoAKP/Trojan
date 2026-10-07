@@ -96,6 +96,16 @@ def test_cart_total_includes_last_item():
         cart.add(pid)
     assert cart.total() == 50
 
+@pytest.mark.regression
+def test_import_products_returns_number_imported():
+    """Author: <Name>. Regression: Cart.import_products().
+    Wrong: importing 2 products returns 3 (count is off by one).
+    Correct: returns how many were imported, 2."""
+    cat = Catalog()
+    cart = Cart(cat)
+    assert cart.import_products([("A", "Alpha", 5), ("B", "Beta", 6)]) == 2
+    assert len(cat.products) == 2
+
 # ---- OUR SLOW TESTS (at least 2) ----
 @pytest.mark.slow
 def test_slow_bulk_import_and_search():
