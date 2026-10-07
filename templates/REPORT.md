@@ -40,7 +40,9 @@ feedback.
 Two bookstore examples are (1) importing 100,000 products with
 `import_products()` and then searching the catalogue with `search()`;
 (2) repeatedly calling `total()` on a shopping cart holding 200,000 items.
+
 ---
+
 ## Part B -- Scenario classification
 
 ### Scenario 1 
@@ -90,7 +92,9 @@ Testing recommendations with one million titles exercises a large
 dataset and substantial processing work. It would also be regression
 if it reproduced a specific previously fixed defect, but the scenario
 does not state such a history.
+
 ---
+
 ## Part C -- Smoke and slow tests
 
 All tests are in `tests/test_bookstore.py`. Every result below was produced
@@ -175,7 +179,9 @@ entire smoke suite. The slow tests are therefore measurably slower, as the
 brief requires. Times were measured on our Windows laptop (Python 3.14.3);
 they are different on other machines and on GitHub Actions (Linux), where
 `import_products()` is slower because each `time.sleep(0)` call costs more.
+
 ---
+
 ## Part D -- Bug hunt
 
 We found and fixed the planted defects with a **test-first** process:
@@ -295,6 +301,7 @@ tests/test_bookstore.py::test_login_rejects_password_with_extra_symbols PASSED  
 
 The full suite (`pytest`) also passes on the fixed code, so no smoke or slow
 test was broken by the fixes.
+
 ---
 
 ## Part F -- Team reflection
