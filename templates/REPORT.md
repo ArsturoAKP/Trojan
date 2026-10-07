@@ -323,7 +323,7 @@ unknown-marker warnings.
 
 | Run | Trigger | Commit | Result | Link |
 |---|---|---|---|---|
-| tests #22 -- `smoke` | push | `790d3a3` | ✅ `<7 passed, 11 deselected in X.XXs>` | [smoke run](https://github.com/ArsturoAKP/Trojan/actions/runs/37611175551/job/112758511331) |
+| tests #22 -- `smoke` | push | `790d3a3` | ✅ `<7 passed, 11 deselected in X.XXs>` | [smoke run](https://github.com/ArsturoAKP/Trojan/actions/runs/37605908303/job/112741194242) |
 | tests #24 -- `full` | workflow_dispatch | `790d3a3` | ✅ `18 passed in 12.60s` | [full run](https://github.com/ArsturoAKP/Trojan/actions/runs/37606438194/job/112742955475) |
 
 Full job, slowest tests on the GitHub Actions runner (Linux, Python 3.12.14):
